@@ -11,12 +11,33 @@ public class PublicPathConfig {
     @Bean
     public List<String> publicPaths() {
       return List.of(
-              "/api/v1/admin/products/all",
-              "/api/v1/contacts/**",
+              // Auth endpoints
               "/api/v1/auth/**",
+              
+              // Public API endpoints
+              "/api/v1/products/**",
+              "/api/v1/categories/**",
+              "/api/v1/admin/products/all",
+              
+              // Contact form
+              "/api/v1/contacts/**",
+              
+              // CSRF token endpoint
+              "/api/v1/csrf-token",
+              "/csrf-token",
+              
+              // Error handling
               "/error",
-              "/api/v1/csrf-token"
+              
+              // Actuator health checks
+              "/actuator/health",
+              "/actuator/info",
+              
+              // Swagger/OpenAPI
+              "/swagger-ui/**",
+              "/v3/api-docs/**",
+              "/swagger-ui.html"
       );
-    };
+    }
 
 }
