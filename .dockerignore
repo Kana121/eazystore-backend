@@ -1,8 +1,14 @@
+# Maven
 target/
+pom.xml.versionsBackup
+pom.xml.*
+
+# Git
 .git
 .gitignore
-.mvn/wrapper/maven-wrapper.properties
-HELP.md
+.gitattributes
+
+# IDE
 .idea/
 *.iml
 *.iws
@@ -10,3 +16,40 @@ HELP.md
 .settings/
 .vscode/
 *.log
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Build output
+build/
+
+# Maven wrapper
+.mvn/wrapper/maven-wrapper.jar
+
+# Application specific
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# Temp files
+*.tmp
+*.bak
+*.swp
+*~.nib
+local.properties
+
+# Other
+HELP.md
