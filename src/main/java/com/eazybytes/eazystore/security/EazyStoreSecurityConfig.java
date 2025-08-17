@@ -8,30 +8,26 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.ProviderManager;
-import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.authentication.password.CompromisedPasswordChecker;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.password.HaveIBeenPwnedRestApiPasswordChecker;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
-import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
-import static org.springframework.security.config.Customizer.withDefaults;
 
 @Configuration
 @EnableWebSecurity
@@ -54,8 +50,10 @@ public class EazyStoreSecurityConfig {
             // Disable CSRF for public endpoints
             csrf.ignoringRequestMatchers(
                 "/csrf-token",
+                "/api/v1/csrf-token",
                 "/api/v1/auth/**",
                 "/api/v1/contacts/**",
+                "/api/v1/admin/products/all",
                 "/actuator/health",
                 "/actuator/info",
                 "/swagger-ui/**",
@@ -141,24 +139,48 @@ public class EazyStoreSecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
         
-        // Allow all origins in development, or specific origins in production
-        if (frontendUrl != null && !frontendUrl.isEmpty()) {
+        // Add default origins for development
+        List<String> allowedOrigins = new ArrayList<>(Arrays.asList(
+            "http://localhost:3000",
+            "https://eazystore-frontend.onrender.com"
+        ));
+        
+        // Add custom frontend URLs from configuration if provided
+        if (frontendUrl != null && !frontendUrl.trim().isEmpty()) {
             // Handle multiple frontend URLs if provided as comma-separated
             String[] urls = frontendUrl.split(",");
-            config.setAllowedOrigins(Arrays.asList(urls));
-        } else {
-            // For development, allow common origins
-            config.setAllowedOrigins(Arrays.asList(
-                "http://localhost:3000",
-                "https://eazystore-frontend.onrender.com"
-            ));
+            for (String url : urls) {
+                String trimmedUrl = url.trim();
+                if (!trimmedUrl.isEmpty() && !allowedOrigins.contains(trimmedUrl)) {
+                    allowedOrigins.add(trimmedUrl);
+                }
+            }
         }
         
-        // Allow all HTTP methods
-        config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+        // Set allowed origins
+        config.setAllowedOrigins(allowedOrigins);
         
-        // Allow all headers
-        config.setAllowedHeaders(Collections.singletonList("*"));
+        // Allow all HTTP methods
+        config.setAllowedMethods(Arrays.asList(
+            HttpMethod.GET.name(),
+            HttpMethod.POST.name(),
+            HttpMethod.PUT.name(),
+            HttpMethod.DELETE.name(),
+            HttpMethod.PATCH.name(),
+            HttpMethod.OPTIONS.name(),
+            HttpMethod.HEAD.name()
+        ));
+        
+        // Allow all headers including custom headers
+        config.setAllowedHeaders(Arrays.asList(
+            "*",
+            "X-Requested-With",
+            "Origin",
+            "Content-Type",
+            "Accept",
+            "Authorization",
+            "X-XSRF-TOKEN"
+        ));
         
         // Allow credentials
         config.setAllowCredentials(true);
@@ -167,14 +189,17 @@ public class EazyStoreSecurityConfig {
         config.setExposedHeaders(Arrays.asList(
             "X-XSRF-TOKEN",
             "Authorization",
-            "Content-Type"
+            "Content-Type",
+            "Content-Disposition"
         ));
         
         // Set max age for preflight requests (1 hour)
         config.setMaxAge(3600L);
         
+        // Apply CORS configuration to all paths
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
+        
         return source;
     }
 
