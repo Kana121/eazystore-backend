@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: eazystore
+    name: eazystore-backend
     env: java
     plan: free
     region: singapore
@@ -10,8 +10,6 @@ services:
     envVars:
       - key: SPRING_PROFILES_ACTIVE
         value: prod
-      - key: FRONTEND_URL
-        value: https://your-frontend-app.onrender.com  # Update this with your frontend URL
       - key: DATABASE_URL
         value: jdbc:postgresql://dpg-d2gc1lruibrs73e778mg-a:5432/eazystore?sslmode=require
       - key: DB_USERNAME
@@ -21,17 +19,14 @@ services:
           name: eazystore-db
           property: password
       - key: RAZORPAY_KEY_ID
-        sync: false  # You'll need to set this in Render dashboard
+        sync: false
       - key: RAZORPAY_KEY_SECRET
-        sync: false  # You'll need to set this in Render dashboard
-      - key: JPA_SHOW_SQL
-        value: "false"
-      - key: HIBERNATE_FORMAT_SQL
-        value: "false"
-      - key: LOG_LEVEL
-        value: "INFO"
+        sync: false
+      - key: FRONTEND_URL
+        value: https://eazystore-ui-kanhas-projects-982262fb.vercel.app
 
 databases:
   - name: eazystore-db
     databaseName: eazystore
-    plan: free  # Free tier for development, upgrade for production
+    user: eazystore
+    plan: free
