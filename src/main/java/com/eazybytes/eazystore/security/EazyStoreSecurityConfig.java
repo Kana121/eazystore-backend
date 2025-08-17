@@ -44,11 +44,11 @@ public class EazyStoreSecurityConfig {
         // Configure CSRF with CookieCsrfTokenRepository
         http.csrf(csrf -> {
             CookieCsrfTokenRepository tokenRepository = CookieCsrfTokenRepository.withHttpOnlyFalse();
-            // Set both cookie name and header name to X-XSRF-TOKEN
-            tokenRepository.setHeaderName("XSRF-TOKEN");
-            tokenRepository.setParameterName("XSRF-TOKEN");
-            tokenRepository.setCookieName("XSRF-TOKEN");
-            tokenRepository.setCookieHttpOnly(false);
+            // Match frontend expectations
+            tokenRepository.setHeaderName("X-XSRF-TOKEN");  // Header name for the token
+            tokenRepository.setParameterName("_csrf");      // Default parameter name
+            tokenRepository.setCookieName("XSRF-TOKEN");    // Cookie name that frontend reads from
+            tokenRepository.setCookieHttpOnly(false);       // Allow JavaScript to read the cookie
             
             csrf.csrfTokenRepository(tokenRepository);
             csrf.csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler());
@@ -155,9 +155,6 @@ public class EazyStoreSecurityConfig {
         // Set max age for preflight requests (1 hour)
         config.setMaxAge(3600L);
         
-        // Allow the X-XSRF-TOKEN header to be exposed to the client
-        config.addExposedHeader("X-XSRF-TOKEN");
-
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;
