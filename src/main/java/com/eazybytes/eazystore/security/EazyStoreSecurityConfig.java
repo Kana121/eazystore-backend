@@ -67,21 +67,17 @@ public class EazyStoreSecurityConfig {
         // Enable CORS
         http.cors(cors -> cors.configurationSource(corsConfigurationSource()));
 
-        // Configure authorization
+        // Configure authorization - ORDER IS IMPORTANT: More specific rules first
         http.authorizeHttpRequests(auth -> {
-            // Public endpoints
-            publicPaths.forEach(path -> auth.requestMatchers(path).permitAll());
-            
             // Explicitly permit CSRF token endpoint
             auth.requestMatchers("/csrf-token").permitAll();
             
-            // Admin endpoints
-            auth.requestMatchers("/api/v1/admin/**").hasRole("ADMIN");
+            // Public endpoints from configuration
+            publicPaths.forEach(path -> auth.requestMatchers(path).permitAll());
             
             // Actuator endpoints
             auth.requestMatchers("/actuator/health").permitAll();
             auth.requestMatchers("/actuator/info").permitAll();
-            auth.requestMatchers("/eazystore/actuator/**").hasRole("OPS_ENG");
             
             // Swagger/OpenAPI
             auth.requestMatchers(
@@ -89,6 +85,13 @@ public class EazyStoreSecurityConfig {
                 "/swagger-ui/**", 
                 "/v3/api-docs/**"
             ).permitAll();
+            
+            // Admin endpoints - more specific rules after public ones
+            auth.requestMatchers("/api/v1/admin/products/all").permitAll(); // Explicitly public
+            auth.requestMatchers("/api/v1/admin/**").hasRole("ADMIN");
+            
+            // Actuator admin endpoints
+            auth.requestMatchers("/eazystore/actuator/**").hasRole("OPS_ENG");
             
             // All other API endpoints require authentication
             auth.anyRequest().authenticated();
