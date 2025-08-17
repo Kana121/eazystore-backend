@@ -1,12 +1,10 @@
 services:
   - type: web
     name: eazystore-backend
-    env: java
+    env: docker
     plan: free
     region: singapore
-    runtime: java
-    buildCommand: ./mvnw clean package -DskipTests
-    startCommand: java -jar target/*.jar --spring.profiles.active=prod
+    dockerfilePath: ./Dockerfile
     envVars:
       - key: SPRING_PROFILES_ACTIVE
         value: prod

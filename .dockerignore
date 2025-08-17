@@ -1,0 +1,12 @@
+target/
+.git
+.gitignore
+.mvn/wrapper/maven-wrapper.properties
+HELP.md
+.idea/
+*.iml
+*.iws
+*.ipr
+.settings/
+.vscode/
+*.log
