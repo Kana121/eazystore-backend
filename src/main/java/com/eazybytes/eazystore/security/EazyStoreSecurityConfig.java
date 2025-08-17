@@ -36,72 +36,36 @@ import static org.springframework.security.config.Customizer.withDefaults;
 @EnableWebSecurity
 @RequiredArgsConstructor
 public class EazyStoreSecurityConfig {
-
+    @Value("${frontend.url:http://localhost:3000}")
+    private String frontendUrl;
     private final List<String> publicPaths;
 
     @Bean
-    SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
-        // Configure CSRF with CookieCsrfTokenRepository
-        http.csrf(csrf -> {
-            CookieCsrfTokenRepository tokenRepository = CookieCsrfTokenRepository.withHttpOnlyFalse();
-            // Match frontend expectations
-            tokenRepository.setHeaderName("X-XSRF-TOKEN");  // Header name for the token
-            tokenRepository.setParameterName("_csrf");      // Default parameter name
-            tokenRepository.setCookieName("XSRF-TOKEN");    // Cookie name that frontend reads from
-            tokenRepository.setCookieHttpOnly(false);       // Allow JavaScript to read the cookie
-            
-            csrf.csrfTokenRepository(tokenRepository);
-            csrf.csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler());
-        });
-
-        // Enable CORS
-        http.cors(cors -> cors.configurationSource(corsConfigurationSource()));
-
-        // Configure authorization
-        http.authorizeHttpRequests(auth -> {
-            // Public endpoints
-            publicPaths.forEach(path -> auth.requestMatchers(path).permitAll());
-            
-            // CSRF token endpoint
-            auth.requestMatchers("/csrf-token").permitAll();
-            
-            // Admin endpoints
-            auth.requestMatchers("/api/v1/admin/**").hasRole("ADMIN");
-            
-            // Actuator endpoints
-            auth.requestMatchers("/actuator/health").permitAll();
-            auth.requestMatchers("/actuator/info").permitAll();
-            auth.requestMatchers("/eazystore/actuator/**").hasRole("OPS_ENG");
-            
-            // Swagger/OpenAPI
-            auth.requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**")
-               .permitAll();
-            
-            // All other API endpoints require authentication
-            auth.anyRequest().authenticated();
-        });
-
-        // Add JWT filter
-        http.addFilterBefore(new JWTTokenValidatorFilter(publicPaths), BasicAuthenticationFilter.class);
-
-        // Disable form login and basic auth for API
-        http.formLogin(form -> form.disable());
-        http.httpBasic(basic -> basic.disable());
-
-        // Handle unauthorized requests
-        http.exceptionHandling(exception -> 
-            exception.authenticationEntryPoint((request, response, authException) -> 
-                response.sendError(401, "Unauthorized")
-            )
-        );
-
-        return http.build();
+    SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http)
+            throws Exception {
+        return http.csrf(csrfConfig -> csrfConfig.
+                        csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                        .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler()))
+                .cors(corsConfig -> corsConfig.configurationSource(corsConfigurationSource()))
+                .authorizeHttpRequests((requests) -> {
+                            publicPaths.forEach(path ->
+                                    requests.requestMatchers(path).permitAll());
+                            requests.requestMatchers("/api/v1/admin/**").hasRole("ADMIN");
+                            requests.requestMatchers("/eazystore/actuator/**").hasRole("OPS_ENG");
+                            requests.requestMatchers("/swagger-ui.html", "/swagger-ui/**",
+                                    "/v3/api-docs/**").hasAnyRole("DEV_ENG","QA_ENG");
+                            requests.anyRequest().hasAnyRole("USER", "ADMIN");
+                        }
+                )
+                .addFilterBefore(new JWTTokenValidatorFilter(publicPaths), BasicAuthenticationFilter.class)
+                .formLogin(withDefaults())
+                .httpBasic(withDefaults()).build();
     }
 
 
     @Bean
     public AuthenticationManager authenticationManager(
-             AuthenticationProvider authenticationProvider) {
+            AuthenticationProvider authenticationProvider) {
         var providerManager = new ProviderManager(authenticationProvider);
         return providerManager;
     }
@@ -116,45 +80,15 @@ public class EazyStoreSecurityConfig {
         return new HaveIBeenPwnedRestApiPasswordChecker();
     }
 
-    @Value("${frontend.url:http://localhost:3000}")
-    private String frontendUrl;
-
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        
-        // Allow all origins in development, or specific origins in production
-        if (frontendUrl != null && !frontendUrl.isEmpty()) {
-            config.setAllowedOrigins(Collections.singletonList(frontendUrl));
-        } else {
-            // For development, allow common origins
-            config.setAllowedOrigins(Arrays.asList(
-                "http://localhost:3000",
-                "https://eazystore-frontend.onrender.com"
-            ));
-        }
-        
-        // Allow common HTTP methods
-        config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
-        
-        // Allow common headers including CSRF token headers
-        config.setAllowedHeaders(Arrays.asList(
-            "Authorization", 
-            "Content-Type", 
-            "X-Requested-With", 
-            "Accept",
-            "X-XSRF-TOKEN"
-        ));
-        
-        // Allow credentials
+        config.setAllowedOrigins(Arrays.asList(frontendUrl));
+        config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(Collections.singletonList("*"));
         config.setAllowCredentials(true);
-        
-        // Expose the CSRF token header to the client
-        config.setExposedHeaders(Collections.singletonList("X-XSRF-TOKEN"));
-        
-        // Set max age for preflight requests (1 hour)
         config.setMaxAge(3600L);
-        
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;
