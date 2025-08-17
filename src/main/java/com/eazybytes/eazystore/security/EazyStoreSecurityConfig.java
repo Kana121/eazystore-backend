@@ -42,10 +42,17 @@ public class EazyStoreSecurityConfig {
     @Bean
     SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
         // Configure CSRF with CookieCsrfTokenRepository
-        http.csrf(csrf -> csrf
-            .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-            .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler())
-        );
+        http.csrf(csrf -> {
+            CookieCsrfTokenRepository tokenRepository = CookieCsrfTokenRepository.withHttpOnlyFalse();
+            // Set both cookie name and header name to X-XSRF-TOKEN
+            tokenRepository.setHeaderName("XSRF-TOKEN");
+            tokenRepository.setParameterName("XSRF-TOKEN");
+            tokenRepository.setCookieName("XSRF-TOKEN");
+            tokenRepository.setCookieHttpOnly(false);
+            
+            csrf.csrfTokenRepository(tokenRepository);
+            csrf.csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler());
+        });
 
         // Enable CORS
         http.cors(cors -> cors.configurationSource(corsConfigurationSource()));
@@ -147,6 +154,9 @@ public class EazyStoreSecurityConfig {
         
         // Set max age for preflight requests (1 hour)
         config.setMaxAge(3600L);
+        
+        // Allow the X-XSRF-TOKEN header to be exposed to the client
+        config.addExposedHeader("X-XSRF-TOKEN");
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);

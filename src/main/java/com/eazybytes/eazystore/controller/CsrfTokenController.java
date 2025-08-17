@@ -1,5 +1,6 @@
 package com.eazybytes.eazystore.controller;
 
+import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -10,7 +11,14 @@ public class CsrfTokenController {
     
     @GetMapping("/csrf-token")
     public String getCsrfToken(HttpServletRequest request) {
-        // The CsrfToken will be automatically injected by Spring Security
-        return "CSRF Token: " + request.getAttribute("_csrf").toString();
+        // Get the CSRF token from the request attributes
+        CsrfToken csrfToken = (CsrfToken) request.getAttribute(CsrfToken.class.getName());
+        
+        if (csrfToken != null) {
+            // Return just the token value
+            return csrfToken.getToken();
+        }
+        
+        return "CSRF token not found";
     }
 }
