@@ -18,8 +18,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.password.HaveIBeenPwnedRestApiPasswordChecker;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
-import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
-import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -38,40 +36,14 @@ public class EazyStoreSecurityConfig {
 
     @Bean
     SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
-        // Configure CSRF with CookieCsrfTokenRepository
-        http.csrf(csrf -> {
-            CookieCsrfTokenRepository tokenRepository = CookieCsrfTokenRepository.withHttpOnlyFalse();
-            // Match frontend expectations
-            tokenRepository.setHeaderName("X-XSRF-TOKEN");  // Header name for the token
-            tokenRepository.setParameterName("_csrf");      // Default parameter name
-            tokenRepository.setCookieName("XSRF-TOKEN");    // Cookie name that frontend reads from
-            tokenRepository.setCookieHttpOnly(false);       // Allow JavaScript to read the cookie
-            
-            // Disable CSRF for public endpoints
-            csrf.ignoringRequestMatchers(
-                "/csrf-token",
-                "/api/v1/csrf-token",
-                "/api/v1/auth/**",
-                "/api/v1/contacts/**",
-                "/api/v1/admin/products/all",
-                "/actuator/health",
-                "/actuator/info",
-                "/swagger-ui/**",
-                "/v3/api-docs/**"
-            );
-            
-            csrf.csrfTokenRepository(tokenRepository);
-            csrf.csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler());
-        });
+        // Disable CSRF as we're using JWT for stateless authentication
+        http.csrf(csrf -> csrf.disable());
 
         // Enable CORS
         http.cors(cors -> cors.configurationSource(corsConfigurationSource()));
 
         // Configure authorization - ORDER IS IMPORTANT: More specific rules first
         http.authorizeHttpRequests(auth -> {
-            // Explicitly permit CSRF token endpoint
-            auth.requestMatchers("/csrf-token").permitAll();
-            
             // Public endpoints from configuration
             publicPaths.forEach(path -> auth.requestMatchers(path).permitAll());
             
@@ -181,8 +153,7 @@ public class EazyStoreSecurityConfig {
             "Origin",
             "Content-Type",
             "Accept",
-            "Authorization",
-            "X-XSRF-TOKEN"
+            "Authorization"
         ));
         
         // Allow credentials
@@ -190,8 +161,7 @@ public class EazyStoreSecurityConfig {
         
         // Expose necessary headers to the client
         config.setExposedHeaders(Arrays.asList(
-            "X-XSRF-TOKEN",
-            "Authorization",
+"Authorization",
             "Content-Type",
             "Content-Disposition"
         ));
