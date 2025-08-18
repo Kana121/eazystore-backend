@@ -186,7 +186,10 @@ public class ProductServiceImpl implements IProductService {
         ProductDto dto = new ProductDto();
         BeanUtils.copyProperties(product, dto);
         dto.setProductId(product.getId());
-        
+        dto.setQuantity(product.getQuantity());
+        dto.setPopularity(product.getPopularity());
+        dto.setCategory(product.getCategory());
+        dto.setSubcategory(product.getSubcategory());
         // Clean and set colors
         if (product.getColors() != null) {
             List<String> cleanedColors = product.getColors().stream()
